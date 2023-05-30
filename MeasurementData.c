@@ -44,14 +44,16 @@ MD* MD_create (const unsigned char *pData, int width, int height) {
  * @param MD *pData the object to delete
  */
 void MD_delete (MD *pData) {
+    if(!pData)
+        return;
+
     if(pData->pMatrix)
         free(pData->pMatrix);
 
     if(pData->pLookupMatrix)
         free(pData->pLookupMatrix);
 
-    if(pData)
-        free(pData);
+    free(pData);
 }
 /**
  * Function to deep copy a MeasurementData object
@@ -137,6 +139,7 @@ unsigned int MD_getSum (const MD *pBuffer, int x0, int y0, int x1, int y1) {
 
     /* prepare parameter for correct order and boundary´s*/
     correctCoordinateOrder(pBuffer, &x0, &y0, &x1, &y1);
+    clampCoordinates(pBuffer, &x0, &y0, &x1, &y1);
 
     /* the second part of the magic is done here. */
     int total = pBuffer->pLookupMatrix[x1 + y1 * pBuffer->width];
@@ -155,22 +158,52 @@ unsigned int MD_getSum (const MD *pBuffer, int x0, int y0, int x1, int y1) {
 
     return total;
 }
-bool correctCoordinateOrder(const MD *pBuffer, int *x0, int *y0, int *x1, int *y1) {
+/**
+ * Function correct the order of the given coordinates
+ * if p2 is nearer at 0,0 than p1, swap them so p1 is always upper left of the rectangle
+ * @param MD *pBuffer the buffer to get the values from
+ * @param int x0 x coordinate of first point of the submatrix
+ * @param int y0 y coordinate of first point of the submatrix
+ * @param int x1 x coordinate of second point of the submatrix
+ * @param int x2 y coordinate of second point of the submatrix
+ */
+void correctCoordinateOrder(const MD *pBuffer, int *x0, int *y0, int *x1, int *y1) {
+    /* check if points are not in the right order, if needed swap them */
+    if (*x1 < *x0) {
+        swap(x1,x0);
+    }
+    if (*y1 < *y0) {
+        swap(y1,y0);
+    }
+}
+
+/**
+ * Function for clamping the coordinates to max size of given buffer
+ * will handle data inplace
+ * @param const MD *pBuffer the buffer to get the values from
+ * @param int x0 x coordinate of first point of the submatrix
+ * @param int y0 y coordinate of first point of the submatrix
+ * @param int x1 x coordinate of second point of the submatrix
+ * @param int x2 y coordinate of second point of the submatrix
+ */
+void clampCoordinates(const MD* pBuffer, int *x0, int *y0, int *x1, int *y1) {
     /* clamp coordinates to max buffer size */
     if(*x1 >= pBuffer->width)
         *x1 = pBuffer->width - 1;
     if(*y1 >= pBuffer->height)
         *y1 = pBuffer->height - 1;
-
-    /* check if points are not in the right order, if needed swap them */
-    if (x1 < x0) {
-        swap(x1,x0);
-    }
-    if (y1 < y0) {
-        swap(y1,y0);
-    }
 }
 
+
+/**
+ * Function for checking if coordinates are out of the given matrix
+ * @param const MD *pBuffer the buffer to get the values from
+ * @param int x0 x coordinate of first point of the submatrix
+ * @param int y0 y coordinate of first point of the submatrix
+ * @param int x1 x coordinate of second point of the submatrix
+ * @param int x2 y coordinate of second point of the submatrix
+ * @return true if both coordinates are outside the buffer
+ */
 bool isOutOfBounds(const MD *pBuffer, int x0, int y0, int x1, int y1) {
     /* check left boundary's */
     if(x0 >= pBuffer->width && x1 >= pBuffer->width)
@@ -192,16 +225,20 @@ bool isOutOfBounds(const MD *pBuffer, int x0, int y0, int x1, int y1) {
  * @param int x2 y coordinate of second point of the submatrix
  */
 double MD_getAverage (const MD *pBuffer, int x0, int y0, int x1, int y1) {
-    /* prepare parameter for correct order and boundary´s*/
-    correctCoordinateOrder(pBuffer, &x0, &y0, &x1, &y1);
-
     int sum = MD_getSum(pBuffer,x0,y0,x1,y1);
     if (sum == 0) return 0;
 
+    correctCoordinateOrder(pBuffer, &x0, &y0, &x1, &y1);
     double elements = (y1 + 1 - y0) * (x1 + 1 -x0);
     return sum / elements;
 }
 
+/**
+ * Function for fast swapping inplace
+ * XOR Swap would also be possible
+ * @param a
+ * @param b
+ */
 void swap(int *a, int *b) {
     if (a != b)
     {

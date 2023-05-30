@@ -29,7 +29,8 @@ double       MD_getAverage (const MD*, int x0, int y0, int x1, int y1);
 void MD_precalculateMatrix(MD *pBuffer);
 void MD_printMatrix(unsigned char* pMatrix, int w, int h);
 bool isOutOfBounds(const MD* pBuffer, int x0, int y0, int x1, int y1);
-bool correctCoordinateOrder(const MD* pBuffer, int *x0, int *y0, int *x1, int *y1);
+void correctCoordinateOrder(const MD* pBuffer, int *x0, int *y0, int *x1, int *y1);
+void clampCoordinates(const MD* pBuffer, int *x0, int *y0, int *x1, int *y1);
 void swap(int *a, int *b);
 
 #endif //MD_H

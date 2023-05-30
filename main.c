@@ -4,18 +4,18 @@
 void runExamples();
 
 int main() {
+    /* we will use a simple 4*4 matrix, predefined here: */
     const unsigned char buffer[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0, 1, 2, 3, 4};
 
     /* create measurement data matrix */
     MD *pBuffer = MD_create(buffer, 4, 4);
 
     /* get statistics */
-    unsigned int sum = MD_getSum(pBuffer, 2,0,3,3);
-    double avg = MD_getAverage(pBuffer, 0,0,4,4);
-
+    unsigned int sum = MD_getSum(pBuffer, 1,1,3,3);
+    double avg = MD_getAverage(pBuffer, 1,1,3,3);
     printf("Sum: %d Avg: %f\n", sum, avg);
 
-    /* create deep of original buffer */
+    /* create deep copy of original buffer */
     MD *pCopy = MD_copy(pBuffer);
 
     /* delete both buffers */
@@ -26,6 +26,9 @@ int main() {
     return 0;
 }
 
+/**
+ * Function for running some examples and edge cases
+ */
 void runExamples() {
     printf("Running some examples of edge cases and more with this matrix:\n");
 
@@ -112,7 +115,7 @@ void runExamples() {
      */
     sum = MD_getSum(pBuffer,4,3,4,4);
     avg = MD_getAverage(pBuffer,4,3,4,4);
-    printf("Sum and average of (4,3) (4,4) inverted rectangle should be both 0 \n");
+    printf("Sum and average of (4,3) (4,4) 'out of bounds' should be both 0 \n");
     printf("Sum: %d Avg: %f\n", sum, avg);
 
     /* seventh case: get sum and avg of matrix which is also out of bounds */
@@ -125,6 +128,6 @@ void runExamples() {
      */
     sum = MD_getSum(pBuffer,4,2,4,3);
     avg = MD_getAverage(pBuffer,4,2,4,3);
-    printf("Sum and average of (4,2) (4,3) inverted rectangle should be both 0 \n");
+    printf("Sum and average of (4,2) (4,3) 'out of bounds' should be both 0 \n");
     printf("Sum: %d Avg: %f\n", sum, avg);
 }
