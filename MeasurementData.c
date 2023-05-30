@@ -31,8 +31,10 @@ MD* MD_create (const unsigned char *pData, int width, int height) {
     size_t sizeOfMatrix = sizeof(unsigned char) * width * height;
     pMD->pMatrix = malloc(sizeOfMatrix);
     memcpy(pMD->pMatrix, pData, sizeOfMatrix);
-    pMD->pPrecalculatedMatrix = malloc(sizeOfMatrix);
-    memcpy(pMD->pPrecalculatedMatrix, pMD->pMatrix, sizeOfMatrix);
+
+    pMD->pLookupMatrix = malloc(sizeOfMatrix);
+    memcpy(pMD->pLookupMatrix, pMD->pMatrix, sizeOfMatrix);
+
     MD_precalculateMatrix(pMD);
     return pMD;
 }
@@ -45,8 +47,8 @@ void MD_delete (MD *pData) {
     if(pData->pMatrix)
         free(pData->pMatrix);
 
-    if(pData->pPrecalculatedMatrix)
-        free(pData->pPrecalculatedMatrix);
+    if(pData->pLookupMatrix)
+        free(pData->pLookupMatrix);
 
     if(pData)
         free(pData);
@@ -64,10 +66,10 @@ MD* MD_copy (const MD *pOriginalData) {
 
     size_t sizeOfMatrix = sizeof(unsigned char) * pOriginalData->width * pOriginalData->height;
     pCopy->pMatrix = malloc(sizeOfMatrix);
-    pCopy->pPrecalculatedMatrix = malloc(sizeOfMatrix);
+    pCopy->pLookupMatrix = malloc(sizeOfMatrix);
 
     memcpy(pCopy->pMatrix, pOriginalData->pMatrix, sizeOfMatrix);
-    memcpy(pCopy->pPrecalculatedMatrix, pOriginalData->pPrecalculatedMatrix, sizeOfMatrix);
+    memcpy(pCopy->pLookupMatrix, pOriginalData->pLookupMatrix, sizeOfMatrix);
 
     return pCopy;
 }
@@ -77,26 +79,29 @@ MD* MD_copy (const MD *pOriginalData) {
  * @param MD *pData the original MeasurementData object
  */
 void MD_precalculateMatrix(MD *pBuffer) {
+    /* the first part of the magic is done here */
 
-    // preprocess the first row
+    /* preprocess the first row, calculate the values from original matrix to precalculatedMatrix like this:
+     * i = i+(i-1) e.g [0,1,2,3] -> [0,1,3,7]
+     */
     for (int i = 1; i < pBuffer->width; i++) {
-        pBuffer->pPrecalculatedMatrix[i] = pBuffer->pMatrix[i] + pBuffer->pPrecalculatedMatrix[i - 1];
+        pBuffer->pLookupMatrix[i] = pBuffer->pMatrix[i] + pBuffer->pLookupMatrix[i - 1];
     }
 
-    // preprocess the first column
+    /* do the same thing with the first column */
     for (int i = 1; i < pBuffer->height; i++) {
-        pBuffer->pPrecalculatedMatrix[i * pBuffer->width] = pBuffer->pMatrix[i * pBuffer->width] + pBuffer->pPrecalculatedMatrix[(i - 1) * pBuffer->width];
+        pBuffer->pLookupMatrix[i * pBuffer->width] = pBuffer->pMatrix[i * pBuffer->width] + pBuffer->pLookupMatrix[(i - 1) * pBuffer->width];
     }
 
-    // preprocess the rest of the matrix
+    /* preprocess the rest of the matrix like before */
     for (int i = 1; i < pBuffer->height; i++)
     {
         for (int j = 1; j < pBuffer->width; j++)
         {
-            pBuffer->pPrecalculatedMatrix[i + j * pBuffer->width] = pBuffer->pMatrix[i + j * pBuffer->width]
-                    + pBuffer->pPrecalculatedMatrix[(i - 1) + j * pBuffer->width]
-                    + pBuffer->pPrecalculatedMatrix[i + (j - 1) * pBuffer->width]
-                    - pBuffer->pPrecalculatedMatrix[(i - 1) + (j - 1) * pBuffer->width];
+            pBuffer->pLookupMatrix[i + j * pBuffer->width] = pBuffer->pMatrix[i + j * pBuffer->width]
+                                                             + pBuffer->pLookupMatrix[(i - 1) + j * pBuffer->width]
+                                                             + pBuffer->pLookupMatrix[i + (j - 1) * pBuffer->width]
+                                                             - pBuffer->pLookupMatrix[(i - 1) + (j - 1) * pBuffer->width];
         }
     }
 }
@@ -126,26 +131,55 @@ void MD_printMatrix(unsigned char* pMatrix, int rows, int cols) {
  * @param int x2 y coordinate of second point of the submatrix
  */
 unsigned int MD_getSum (const MD *pBuffer, int x0, int y0, int x1, int y1) {
-    if(x1 >= pBuffer->width)
-        x1 = pBuffer->width - 1;
-    if(y1 >= pBuffer->height)
-        y1 = pBuffer->height - 1;
+    /* edge case, everything is out of bounds */
+    if(isOutOfBounds(pBuffer, x0, y0, x1, y1))
+        return 0;
 
-    int total = pBuffer->pPrecalculatedMatrix[x1 + y1 * pBuffer->width];
+    /* prepare parameter for correct order and boundary´s*/
+    correctCoordinateOrder(pBuffer, &x0, &y0, &x1, &y1);
+
+    /* the second part of the magic is done here. */
+    int total = pBuffer->pLookupMatrix[x1 + y1 * pBuffer->width];
 
     if (y0 - 1 >= 0) {
-        total -= pBuffer->pPrecalculatedMatrix[x1 + (y0 - 1) * pBuffer->width];
+        total -= pBuffer->pLookupMatrix[x1 + (y0 - 1) * pBuffer->width];
     }
 
     if (x0 - 1 >= 0) {
-        total -= pBuffer->pPrecalculatedMatrix[(x0 - 1) + y1 * pBuffer->width];
+        total -= pBuffer->pLookupMatrix[(x0 - 1) + y1 * pBuffer->width];
     }
 
     if (x0 - 1 >= 0 && y0 - 1 >= 0) {
-        total += pBuffer->pPrecalculatedMatrix[(x0 - 1) + (y0 - 1) * pBuffer->width];
+        total += pBuffer->pLookupMatrix[(x0 - 1) + (y0 - 1) * pBuffer->width];
     }
 
     return total;
+}
+bool correctCoordinateOrder(const MD *pBuffer, int *x0, int *y0, int *x1, int *y1) {
+    /* clamp coordinates to max buffer size */
+    if(*x1 >= pBuffer->width)
+        *x1 = pBuffer->width - 1;
+    if(*y1 >= pBuffer->height)
+        *y1 = pBuffer->height - 1;
+
+    /* check if points are not in the right order, if needed swap them */
+    if (x1 < x0) {
+        swap(x1,x0);
+    }
+    if (y1 < y0) {
+        swap(y1,y0);
+    }
+}
+
+bool isOutOfBounds(const MD *pBuffer, int x0, int y0, int x1, int y1) {
+    /* check left boundary's */
+    if(x0 >= pBuffer->width && x1 >= pBuffer->width)
+        return true;
+    /* check lower boundary's */
+    if(y0 >= pBuffer->height && y1 >= pBuffer->height)
+        return true;
+
+    return false;
 }
 
 /**
@@ -158,8 +192,22 @@ unsigned int MD_getSum (const MD *pBuffer, int x0, int y0, int x1, int y1) {
  * @param int x2 y coordinate of second point of the submatrix
  */
 double MD_getAverage (const MD *pBuffer, int x0, int y0, int x1, int y1) {
+    /* prepare parameter for correct order and boundary´s*/
+    correctCoordinateOrder(pBuffer, &x0, &y0, &x1, &y1);
+
     int sum = MD_getSum(pBuffer,x0,y0,x1,y1);
+    if (sum == 0) return 0;
+
     double elements = (y1 + 1 - y0) * (x1 + 1 -x0);
     return sum / elements;
+}
+
+void swap(int *a, int *b) {
+    if (a != b)
+    {
+        *a = *a + *b;
+        *b = *a - *b;
+        *a = *a - *b;
+    }
 }
 #endif //MD_C

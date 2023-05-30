@@ -8,11 +8,12 @@
 #include <stdlib.h>
 #include "stdio.h"
 #include <string.h>
+#include <stdbool.h>
 
 typedef struct MD
 {
     unsigned char* pMatrix;
-    unsigned char* pPrecalculatedMatrix;
+    unsigned char* pLookupMatrix;
     int width;
     int height;
 } MD;
@@ -27,4 +28,8 @@ double       MD_getAverage (const MD*, int x0, int y0, int x1, int y1);
 /* helper functions */
 void MD_precalculateMatrix(MD *pBuffer);
 void MD_printMatrix(unsigned char* pMatrix, int w, int h);
+bool isOutOfBounds(const MD* pBuffer, int x0, int y0, int x1, int y1);
+bool correctCoordinateOrder(const MD* pBuffer, int *x0, int *y0, int *x1, int *y1);
+void swap(int *a, int *b);
+
 #endif //MD_H
