@@ -27,3 +27,32 @@ delete both buffers
 MD_delete(pBuffer);
 MD_delete(pCopy);
 ```
+
+
+The code in the main will produce following output:
+```
+
+Sum: 46 Avg: 5.111111
+Running some examples of edge cases and more with this matrix:
+1 1 1 1 
+1 1 1 1 
+1 1 1 1 
+1 1 1 1 
+Sum and average of complete J matrix should be 16 and 1:
+Sum: 16 Avg: 1.000000
+Sum and average of (0,0) (0,0) submatrix should be both 1:
+Sum: 1 Avg: 1.000000
+Sum and average of (2,2) (4,4) submatrix should be 4 and 0.4444 
+Sum: 4 Avg: 0.444444
+Sum and average of (2,3) (1,1) inverted rectangle should be 6 and 1 
+Sum: 6 Avg: 1.000000
+Sum and average of (3,1) (1,2) inverted rectangle should be 6 and 1 
+Sum: 6 Avg: 1.000000
+Sum and average of (4,3) (4,4) 'out of bounds' should be both 0 
+Sum: 0 Avg: 0.000000
+Sum and average of (4,2) (4,3) 'out of bounds' should be both 0 
+Sum: 0 Avg: 0.000000
+
+Process finished with exit code 0
+
+```
