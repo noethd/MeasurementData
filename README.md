@@ -63,4 +63,4 @@ Process finished with exit code 0
 
 ## Possible improvements
 - Change x0,y0,x1,y1 to a coordinate or rectangle Type
-- 
+- better null checking or creating matrices in seperate functions
