@@ -18,21 +18,36 @@ MD* MD_create (const unsigned char *pData, int width, int height) {
 
     /* if size is out of bounds always set to zero - its also possible to assert or return nullptr. */
     if(width < 0 || width > MAX_MATRIX_SIZE_X_Y) {
-        width = 0;
+        return NULL;
     }
     if(height < 0 || height > MAX_MATRIX_SIZE_X_Y) {
-        height = 0;
+        return NULL;
     }
 
     MD *pMD = malloc(sizeof(MD));
+    if (pMD == NULL){
+        return NULL;
+    }
+
     pMD->height = height;
     pMD->width = width;
 
     size_t sizeOfMatrix = sizeof(unsigned char) * width * height;
-    pMD->pMatrix = malloc(sizeOfMatrix);
-    memcpy(pMD->pMatrix, pData, sizeOfMatrix);
 
+    /* simple and straight forward null checks, could be done better by putting in own function */
+    pMD->pMatrix = malloc(sizeOfMatrix);
+    if(pMD->pMatrix == NULL) {
+        free(pMD);
+        return NULL;
+    }
     pMD->pLookupMatrix = malloc(sizeOfMatrix);
+    if(pMD->pLookupMatrix  == NULL) {
+        free(pMD->pMatrix);
+        free(pMD);
+        return NULL;
+    }
+
+    memcpy(pMD->pMatrix, pData, sizeOfMatrix);
     memcpy(pMD->pLookupMatrix, pMD->pMatrix, sizeOfMatrix);
 
     MD_precalculateMatrix(pMD);
@@ -61,15 +76,27 @@ void MD_delete (MD *pData) {
  */
 MD* MD_copy (const MD *pOriginalData) {
     MD *pCopy = malloc(sizeof(MD));
-
-    // can be done by memcpy too
+    if(pCopy == NULL) {
+        return NULL;
+    }
+    /* can be done by memcpy too */
     pCopy->width = pOriginalData->width;
     pCopy->height = pOriginalData->height;
 
     size_t sizeOfMatrix = sizeof(unsigned char) * pOriginalData->width * pOriginalData->height;
-    pCopy->pMatrix = malloc(sizeOfMatrix);
-    pCopy->pLookupMatrix = malloc(sizeOfMatrix);
 
+    /* simple and straight forward null checks, could be done better by putting in own function */
+    pCopy->pMatrix = malloc(sizeOfMatrix);
+    if(pCopy->pMatrix == NULL) {
+        free(pCopy);
+        return NULL;
+    }
+    pCopy->pLookupMatrix = malloc(sizeOfMatrix);
+    if(pCopy->pLookupMatrix  == NULL) {
+        free(pCopy->pMatrix);
+        free(pCopy);
+        return NULL;
+    }
     memcpy(pCopy->pMatrix, pOriginalData->pMatrix, sizeOfMatrix);
     memcpy(pCopy->pLookupMatrix, pOriginalData->pLookupMatrix, sizeOfMatrix);
 
@@ -141,7 +168,9 @@ unsigned int MD_getSum (const MD *pBuffer, int x0, int y0, int x1, int y1) {
     correctCoordinateOrder(pBuffer, &x0, &y0, &x1, &y1);
     clampCoordinates(pBuffer, &x0, &y0, &x1, &y1);
 
-    /* the second part of the magic is done here. */
+    /* the second part of the magic is done here.
+     * Calculation is done, by subtracting sub-matrices from each other
+     * */
     int total = pBuffer->pLookupMatrix[x1 + y1 * pBuffer->width];
 
     if (y0 - 1 >= 0) {
@@ -234,7 +263,7 @@ double MD_getAverage (const MD *pBuffer, int x0, int y0, int x1, int y1) {
 }
 
 /**
- * Function for fast swapping inplace
+ * Function for fast swapping inplace, search for 'inplace swap' or 'XOR swap'
  * XOR Swap would also be possible
  * @param a
  * @param b

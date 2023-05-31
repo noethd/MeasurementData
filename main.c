@@ -10,6 +10,7 @@ int main() {
 
     /* create measurement data matrix */
     MD *pBuffer = MD_create(buffer, 4, 4);
+    if(pBuffer == NULL) return -1;
 
     /* get statistics */
     unsigned int sum = MD_getSum(pBuffer, 1,1,3,3);
