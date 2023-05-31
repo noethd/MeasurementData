@@ -31,8 +31,12 @@ MD_delete(pCopy);
 
 The code in the main will produce following output:
 ```
-
+0 1 2 3 
+4 5 6 7 
+8 9 10 0 
+1 2 3 4 
 Sum: 46 Avg: 5.111111
+
 Running some examples of edge cases and more with this matrix:
 1 1 1 1 
 1 1 1 1 
@@ -56,3 +60,7 @@ Sum: 0 Avg: 0.000000
 Process finished with exit code 0
 
 ```
+
+## Possible improvements
+- Change x0,y0,x1,y1 to a coordinate or rectangle Type
+- 
